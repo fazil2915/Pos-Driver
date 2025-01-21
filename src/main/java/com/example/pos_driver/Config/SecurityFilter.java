@@ -29,12 +29,12 @@ public class SecurityFilter {
                         "/analytics/**",
                         "/switch/**"
                 ).permitAll()
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()
                 .and()
                 .httpBasic() // Use basic authentication
                 .and()
                 .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS); // Stateless session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS); 
         return http.build();
     }
 }
