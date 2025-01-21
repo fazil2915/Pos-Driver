@@ -1,0 +1,43 @@
+<configuration>
+
+    <!-- Define a base directory for logs -->
+    <property name="LOG_DIR" value="logs"/>
+
+    <!-- Console Appender (Logs to Console only) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Rolling File Appender (Logs specific classes to a file) -->
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/application-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Root Logger Configuration (Console only for INFO and above) -->
+    <root level="INFO">
+        <!-- Console appender for general logging -->
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Logger for specific package or class, logs to file at DEBUG level -->
+    <logger name="com.example" level="DEBUG">
+        <appender-ref ref="ROLLING"/>
+    </logger>
+
+    <!-- Another custom logger example -->
+    <logger name="com.example.service" level="INFO">
+        <appender-ref ref="ROLLING"/>
+    </logger>
+
+</configuration>
