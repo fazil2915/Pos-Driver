@@ -66,4 +66,16 @@ public class Terminal {
     @JoinColumn(name = "merchant", referencedColumnName = "id", nullable = true)
     private Merchant merchant;
 
+    @ManyToOne( cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "key", referencedColumnName = "id", nullable = true)
+    private Key key;
+
+    @ManyToOne( cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "switch", referencedColumnName = "id", nullable = true)
+    private Switch Switch;
+
+    @ManyToOne( cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "hsm", referencedColumnName = "id", nullable = true)
+    private Hsm hsm ;
+
 }

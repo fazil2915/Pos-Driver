@@ -1,8 +1,0 @@
-2025-01-21 12:05:14 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2025-01-21 12:05:14 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2025-01-21 12:05:14 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
-2025-01-21 12:05:28 [main] INFO  c.e.pos_driver.PosDriverApplication - Starting PosDriverApplication using Java 1.8.0_432 on fazil with PID 10015 (/home/fazil-rahman/Desktop/Pos-Driver/pos-driver/target/classes started by fazil-rahman in /home/fazil-rahman/Desktop/Pos-Driver/pos-driver)
-2025-01-21 12:05:28 [main] DEBUG c.e.pos_driver.PosDriverApplication - Running with Spring Boot v2.7.8, Spring v5.3.25
-2025-01-21 12:05:28 [main] INFO  c.e.pos_driver.PosDriverApplication - No active profile set, falling back to 1 default profile: "default"
-2025-01-21 12:05:31 [main] INFO  c.e.pos_driver.PosDriverApplication - Started PosDriverApplication in 3.257 seconds (JVM running for 3.514)
-2025-01-21 12:05:49 [http-nio-8089-exec-1] INFO  c.e.p.Controller.DriverController - Test API called
