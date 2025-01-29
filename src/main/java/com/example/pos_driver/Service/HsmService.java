@@ -78,8 +78,8 @@ public class HsmService {
     private String sendBaCommand(String pin, String  pan, HsmConnection hsmCon){
         try {
             BAcommand baCommand = new BAcommand.BAcommandBuilder()
-                    .withPin("5822")
-                    .withAccountNumber(DataValidator.makeAccountNumberFromPan("4048345005560466"))
+                    .withPin(pin)
+                    .withAccountNumber(DataValidator.makeAccountNumberFromPan(pan))
                     .build();
 
             System.out.println("BACommand : " + baCommand.toString());
