@@ -72,7 +72,7 @@ public class Terminal {
 
     @ManyToOne( cascade = CascadeType.REMOVE)
     @JoinColumn(name = "switch", referencedColumnName = "id", nullable = true)
-    private Switch Switch;
+    private Switch switchs;
 
     @ManyToOne( cascade = CascadeType.REMOVE)
     @JoinColumn(name = "hsm", referencedColumnName = "id", nullable = true)

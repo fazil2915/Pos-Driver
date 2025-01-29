@@ -26,10 +26,10 @@ public class Key {
     )
     private UUID id;
 
-    @Column(name = "key_name", nullable = false, unique = true, length = 15)
+    @Column(name = "key_name", nullable = false, unique = true)
     private String keyName;
 
-    @Column(name = "value", nullable = false, unique = true, length = 15)
+    @Column(name = "value", nullable = false, unique = true)
     private String value;
 
     @Column(name = "check_digit", nullable = true)
