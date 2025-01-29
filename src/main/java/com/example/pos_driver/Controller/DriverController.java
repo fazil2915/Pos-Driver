@@ -2,6 +2,8 @@ package com.example.pos_driver.Controller;
 
 import com.example.pos_driver.Model.DriverRequest;
 import com.example.pos_driver.Service.HsmService;
+import com.example.pos_driver.Service.Iso8583Service;
+import com.example.pos_driver.Service.VitaService;
 import com.example.pos_driver.dto.PosTransRes;
 import com.example.pos_driver.Repo.PinDecryption;
 import com.example.pos_driver.Service.CardService;
@@ -10,10 +12,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import postilion.realtime.sdk.util.XPostilion;
+
+import java.io.IOException;
 
 @RestController
 public class DriverController {
@@ -21,7 +23,15 @@ public class DriverController {
     private static final Logger logger = LoggerFactory.getLogger(DriverController.class);
 
     @Autowired
-    HsmService hsmService;
+    private HsmService hsmService;
+
+
+    @Autowired
+    private Iso8583Service iso8583Service;
+
+
+    @Autowired
+    private VitaService vitaService;
     @Autowired
     private CardService cardService;
 
@@ -55,9 +65,12 @@ public class DriverController {
             // Check Terminal and PIN Validity
             String isTerminalValid = cardService.verifyTransaction(driver.getSl_no());
             String isPinValid = pinDecryption.pinDecrypting(driver.getPin());
+            String msg= "";
             if(isTerminalValid == "true"){
                 logger.info("entered hsm phase..");
-                hsmService.communicateWithHSM(driver);
+                String pin = hsmService.communicateWithHSM(driver);
+                logger.debug("Encrypted pin: "+pin);
+                msg = iso8583Service.createIso8583Message(driver,pin);
             }
 
             // Create Response Message
@@ -66,7 +79,7 @@ public class DriverController {
                     : "Terminal or PIN verification failed.";
 
             // Create and Return Response
-            PosTransRes response = new PosTransRes(message, isTerminalValid, isPinValid);
+            PosTransRes response = new PosTransRes(msg, isTerminalValid, isPinValid);
             return new ResponseEntity<>(response, HttpStatus.OK);
 
         } catch (Exception e) {
@@ -75,5 +88,11 @@ public class DriverController {
                     new PosTransRes("Internal server error. Please try again later.", "false", "false"),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+
+    @PostMapping("/test2")
+    public String testApi(@RequestBody DriverRequest driverRequest) throws XPostilion, IOException {
+        return iso8583Service.createIso8583Message(driverRequest, "2343223423");
     }
 }

@@ -33,4 +33,10 @@ public class VitaService {
     }
 
 
+    public  String getKeyValue(String keyName){
+        return keyRepo.findByKeyName(keyName).get().getValue();
+    }
+
+
+
 }
