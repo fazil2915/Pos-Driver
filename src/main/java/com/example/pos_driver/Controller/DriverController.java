@@ -1,6 +1,7 @@
 package com.example.pos_driver.Controller;
 
 import com.example.pos_driver.Model.DriverRequest;
+import com.example.pos_driver.Model.Terminal;
 import com.example.pos_driver.Service.HsmService;
 import com.example.pos_driver.Service.Iso8583Service;
 import com.example.pos_driver.Service.VitaService;
@@ -15,7 +16,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import postilion.realtime.sdk.util.XPostilion;
 
+import java.awt.*;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 @RestController
 public class DriverController {
@@ -44,7 +51,7 @@ public class DriverController {
     }
 
     @RequestMapping(value = "/test", method = RequestMethod.POST)
-    public ResponseEntity<PosTransRes> checkTerminal(@RequestBody DriverRequest driver) {
+    public ResponseEntity<?> checkTerminal(@RequestBody DriverRequest driver) {
         try {
             logger.info("Received request to check terminal for serial number: {}", driver.getSl_no());
 
@@ -66,18 +73,69 @@ public class DriverController {
             String isTerminalValid = cardService.verifyTransaction(driver.getSl_no());
             String isPinValid = pinDecryption.pinDecrypting(driver.getPin());
             String msg= "";
-            if(isTerminalValid == "true"){
+            if(Objects.equals(isTerminalValid, "true")){
                 logger.info("entered hsm phase..");
                 String pin = hsmService.communicateWithHSM(driver);
                 logger.debug("Encrypted pin: "+pin);
-                msg = iso8583Service.createIso8583Message(driver,pin);
-            }
+             byte[] IsoMsg = iso8583Service.createIso8583Message(driver,pin);
+             if(IsoMsg == null){
+                 return ResponseEntity.status(404).body("Error in Iso message Creation") ;
+             }
 
-            // Create Response Message
+                System.out.println("Message Received");
+
+
+                Socket socket = null;
+                BufferedOutputStream outStream = null;
+                DataInputStream dis = null;
+                    Terminal terminal = vitaService.findTerminalBySerialNumber(driver.getSl_no()).get();
+                    String host =terminal.getSwitchs().getIp();
+                    String port=terminal.getSwitchs().getPort();
+                    socket = new Socket(host, Integer.parseInt(port));
+                    outStream = new BufferedOutputStream(socket.getOutputStream());
+                    dis = new DataInputStream(socket.getInputStream());
+
+                    logger.info("HSM Connected to {}:{}", host, port);
+                    logger.debug("message socket {}", socket);
+
+                    // Convert the string message to raw bytes using ISO-8859-1 encoding
+//                    byte[] messageBytes = message.getBytes(StandardCharsets.ISO_8859_1);
+//                    logger.debug("Message bytes (raw): {}", javax.xml.bind.DatatypeConverter.printHexBinary(messageBytes));
+
+//                    logger.debug("message byte :"+messageBytes);
+//                    outStream.write();
+//                    outStream.flush();
+
+//                    logger.info("Sent to HSM: {}", javax.xml.bind.DatatypeConverter.printHexBinary(messageBytes));
+
+
+//                    int responseLength = dis.readUnsignedShort();
+//
+//                    logger.debug("response Length "+responseLength);
+//                    if (responseLength > 0) {
+//                        byte[] response = new byte[responseLength];
+//                        dis.readFully(response, 0, responseLength);
+//                        String responseString = new String(response);
+//                        logger.info("Response from HSM: {}", responseString);
+//                        return responseString;
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
             String message = ("true".equals(isTerminalValid) && "true".equals(isPinValid))
                     ? "Terminal and PIN verification successful."
                     : "Terminal or PIN verification failed.";
-
+            }
             // Create and Return Response
             PosTransRes response = new PosTransRes(msg, isTerminalValid, isPinValid);
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -93,6 +151,7 @@ public class DriverController {
 
     @PostMapping("/test2")
     public String testApi(@RequestBody DriverRequest driverRequest) throws XPostilion, IOException {
-        return iso8583Service.createIso8583Message(driverRequest, "2343223423");
+//        return iso8583Service.createIso8583Message(driverRequest, "2343223423");
+        return "";
     }
 }
