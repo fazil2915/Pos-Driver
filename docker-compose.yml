@@ -17,13 +17,13 @@ services:
 
   database:
     image: postgres:15
-    container_name: postgres-db
+    container_name: postgres1-db
     environment:
       POSTGRES_DB: VITA_POS
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5433"
+      - "5434:5434"
     networks:
       - app-network
 

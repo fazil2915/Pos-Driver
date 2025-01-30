@@ -53,7 +53,6 @@ public class SwitchService {
             outStream.write(send(isoMsg));
             outStream.flush();
             logger.info("Sent ISO message to switch");
-
             int responseLength = dis.readUnsignedShort();
             byte[] responseBytes = new byte[responseLength];
             dis.readFully(responseBytes);
@@ -65,7 +64,7 @@ public class SwitchService {
 
         } catch (IOException e) {
             logger.error("Switch connection failed: ", e);
-            return isoMsg;  // or handle failure as appropriate
+            return null;  // or handle failure as appropriate
 
 
         }
