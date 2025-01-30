@@ -18,9 +18,9 @@ FROM openjdk:8-jdk-slim
 WORKDIR /app
 
 # Copy the WAR file into the container
-COPY target/demo-0.0.1-SNAPSHOT.war /app/app.war
+COPY target/pos-driver-0.0.1-SNAPSHOT.war /app/pos-driver-0.0.1-SNAPSHOT.war
 # Expose the port the app runs on
 EXPOSE 8080
 
 # Run the Spring Boot application
-ENTRYPOINT ["java", "-jar", "/app/app.war"]
+ENTRYPOINT ["java", "-jar", "/app/pos-driver-0.0.1-SNAPSHOT.war"]

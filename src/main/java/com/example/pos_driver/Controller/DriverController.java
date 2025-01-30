@@ -68,7 +68,7 @@ public class DriverController {
             String pin = hsmService.communicateWithHSM(driver);
             logger.debug("Encrypted pin: {}", pin);
             byte[] isoMsg = iso8583Service.createIso8583Message(driver, pin);
-
+            logger.info("iso message");
             if (isoMsg == null) {
                 return ResponseEntity.ok(new PosTransRes("Error in ISO message creation", "false", "false"));
             }

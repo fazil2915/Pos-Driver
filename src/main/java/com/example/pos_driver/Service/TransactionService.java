@@ -61,14 +61,15 @@ public class TransactionService {
         transaction.setTrack2(driverRequest.getTrack2());
         transaction.setIccData(driverRequest.getIcc_req_data());
 
+
         transaction.setSwitchKey(terminal.getSwitchs().getName());
 
         transaction.setTransactionDateTime(now.format(dateTimeFormatter));
         transaction.setDate(now.format(dateFormatter));
         transaction.setTime(now.format(timeFormatter));
-
         transaction.setRespCode(IsoMsg.getResponseCode());
         transaction.setMsgType(IsoMsg.getMessageType());
+
 
         transaction.setStan(IsoMsg.getField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR));
         transaction.setCardAcceptorTerminalId(IsoMsg.getField(Iso8583Post.Bit._041_CARD_ACCEPTOR_TERM_ID));
