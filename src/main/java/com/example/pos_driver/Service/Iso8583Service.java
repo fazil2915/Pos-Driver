@@ -45,7 +45,7 @@ public class Iso8583Service {
 
 
         Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
-
+        String stan = transactionService.generateStan(driverRequest);
         Iso8583Post result = new Iso8583Post();
         result.putMsgType(Iso8583Post.MsgType._0200_TRAN_REQ);
         result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
@@ -53,6 +53,7 @@ public class Iso8583Service {
         result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount());
         result.putField(Iso8583Post.Bit._007_TRANSMISSION_DATE_TIME, getTransmissionDateTime());
 
+        result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, stan);
         result.putField(Iso8583Post.Bit._012_TIME_LOCAL, getLocalTransactionTime());
         result.putField(Iso8583Post.Bit._013_DATE_LOCAL, getLocalTransactionDate());
         result.putField(Iso8583Post.Bit._023_CARD_SEQ_NR, "000");
@@ -70,8 +71,8 @@ public class Iso8583Service {
         result.putPrivField(Iso8583Post.PrivBit._010_CVV_2, "000");//Naiguata
         result.putPrivField(Iso8583Post.PrivBit._025_ICC_DATA, iccCardService.getTempIcc(driverRequest.getIcc_req_data()));
 
-        String stan = transactionService.generateStan(driverRequest,result);
-        result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, stan);
+
+        transactionService.createTransaction(driverRequest,result);
 
         System.out.println("ISO message : " + result);
         byte[] ISOMsg = result.toMsg();
@@ -187,9 +188,15 @@ public class Iso8583Service {
         return formatted.toString().trim();
     }
 
-    public String setResponse(byte[] result) throws XPostilion, JsonProcessingException {
+    public String setResponse(byte[] result, DriverRequest driverRequest) throws XPostilion, JsonProcessingException {
         Iso8583Post response_Result = new Iso8583Post();
         response_Result.fromMsg(result);
+
+        if(!transactionRepo.existsByStan(response_Result.getField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR))){
+            return "Received STAN is not in the table  ";
+        }
+
+        transactionService.createTransaction(driverRequest,response_Result);
         String responsecode = response_Result.getResponseCode();
         String msg_type = response_Result.getMessageType();
         String cardHolderName = response_Result.getPrivField(Iso8583Post.PrivBit._017_CARDHOLDER_INFO);
@@ -202,8 +209,6 @@ public class Iso8583Service {
         System.out.println("Stmt: " + stmt);
         System.out.println("Field 54: " + field_54);
         System.out.println("Card holder name: " +cardHolderName);
-
-
 
         Map<String, String> resp = new HashMap<>();
         resp.put("response", responsecode);
