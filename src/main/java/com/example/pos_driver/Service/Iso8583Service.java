@@ -5,6 +5,8 @@ import com.example.pos_driver.Model.DriverRequest;
 import com.example.pos_driver.Model.Terminal;
 import com.example.pos_driver.Model.Transaction;
 import com.example.pos_driver.Repo.TransactionRepo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import postilion.realtime.sdk.message.bitmap.Iso8583Post;
@@ -18,6 +20,8 @@ import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class Iso8583Service {
@@ -35,8 +39,6 @@ public class Iso8583Service {
 
     // Method to generate ISO8583 message
     public byte[] createIso8583Message(DriverRequest driverRequest, String pin) throws IOException, XPostilion {
-
-
 
 
         Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
@@ -92,7 +94,7 @@ public class Iso8583Service {
         System.out.println("Formatted Byte:\n" + DatatypeConverter.printHexBinary(byteArray));
 
 
-        return ISOMsg;
+        return isoMsgWithIcc;
     }
 
 
@@ -205,4 +207,72 @@ public class Iso8583Service {
         return formatted.toString().trim();
     }
 
+    public String setResponse(byte[] result) throws XPostilion, JsonProcessingException {
+        Iso8583Post response_Result = new Iso8583Post();
+        response_Result.fromMsg(result);
+        String responsecode = response_Result.getResponseCode();
+        String msg_type = response_Result.getMessageType();
+        String cardHolderName = response_Result.getPrivField(Iso8583Post.PrivBit._017_CARDHOLDER_INFO);
+        String stmt = response_Result.getField(Iso8583Post.Bit._048_ADDITIONAL_DATA);
+        String tranID = response_Result.getField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR);
+        String field_54 = response_Result.getField(Iso8583Post.Bit._054_ADDITIONAL_AMOUNTS);
+        System.out.println("msg_type: " + msg_type);
+        System.out.println("Response Code: " + responsecode);
+        System.out.println("Stan: " + tranID);
+        System.out.println("Stmt: " + stmt);
+        System.out.println("Field 54: " + field_54);
+        System.out.println("Card holder name: " +cardHolderName);
+
+
+        Map<String, String> resp = new HashMap<>();
+        resp.put("response", responsecode);
+
+        String jsonString = null;
+        if(cardHolderName != null) {
+            resp.put("card_holder_name", cardHolderName);
+        }
+        if(stmt!=null) {
+            resp.put("statement", stmt);
+        }
+        if(tranID!=null) {
+            resp.put("tran_id", tranID);
+        }
+
+        if(field_54 != null && field_54.length() == 40) {
+            System.out.println("field_54 :: " + field_54);
+            try {
+
+                String part1 = field_54.substring(0, 20);
+                String part2 = field_54.substring(20, 40);
+                String ledgerBalance = part1.substring(8, 20);
+                String availableBalance = part2.substring(8, 20);
+
+                String formattedLedgerBalance = formatBalance(ledgerBalance);
+                String formattedAvailableBalance = formatBalance(availableBalance);
+
+                resp.put("ledger_balance", formattedLedgerBalance);
+                resp.put("available_balance", formattedAvailableBalance);
+
+                System.out.println("Ledger Balance: " + formattedLedgerBalance);
+                System.out.println("Available Balance: " + formattedAvailableBalance);
+
+
+            }  catch (Exception e) {
+                throw  new RuntimeException("Error occurred: " + e.getMessage());
+            }
+
+        }
+        ObjectMapper objectMapper = new ObjectMapper();
+        jsonString = objectMapper.writeValueAsString(resp);
+        System.out.println("Response : " + jsonString);
+        return jsonString;
+    }
+
+    private  String formatBalance(String balance) {
+        double value = Double.parseDouble(balance.replaceFirst("^0+(?!$)", "")) / 100.0;
+        return String.format("%.2f", value);
+    }
+
 }
+
+
