@@ -203,8 +203,12 @@ public class Iso8583Service {
         System.out.println("Field 54: " + field_54);
         System.out.println("Card holder name: " +cardHolderName);
 
+
+
         Map<String, String> resp = new HashMap<>();
         resp.put("response", responsecode);
+
+
         String jsonString = null;
         if(cardHolderName != null) {
             resp.put("card_holder_name", cardHolderName);
@@ -238,10 +242,13 @@ public class Iso8583Service {
             }  catch (Exception e) {
                 throw  new RuntimeException("Error occurred: " + e.getMessage());
             }
+
+
         }
         ObjectMapper objectMapper = new ObjectMapper();
         jsonString = objectMapper.writeValueAsString(resp);
-        System.out.println("String changed : " + jsonString);
+        System.out.println("Response : " + jsonString);
+
         return jsonString;
     }
 
@@ -249,4 +256,7 @@ public class Iso8583Service {
         double value = Double.parseDouble(balance.replaceFirst("^0+(?!$)", "")) / 100.0;
         return String.format("%.2f", value);
     }
+
 }
+
+
