@@ -10,6 +10,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -33,5 +34,8 @@ public class Transaction {
 
     @Column(name = "msg_type", nullable = false)
     private String msg_type;
+
+    @Column(name = "created_date")
+    private LocalDateTime created_date;
 
 }

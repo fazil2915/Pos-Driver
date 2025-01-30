@@ -5,7 +5,10 @@ import com.example.pos_driver.Model.DriverRequest;
 import com.example.pos_driver.Model.Terminal;
 import com.example.pos_driver.Model.Transaction;
 import com.example.pos_driver.Repo.TransactionRepo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration;
 import org.springframework.stereotype.Service;
 import postilion.realtime.sdk.message.bitmap.Iso8583Post;
 import postilion.realtime.sdk.util.XPostilion;
@@ -18,16 +21,20 @@ import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class Iso8583Service {
 
 
-
     @Autowired
-    private  IccCardService iccCardService;
+    private IccCardService iccCardService;
     @Autowired
     private TransactionRepo transactionRepo;
+
+    @Autowired
+    private TransactionService transactionService;
     @Autowired
     private VitaService vitaService;
 
@@ -37,25 +44,22 @@ public class Iso8583Service {
     public byte[] createIso8583Message(DriverRequest driverRequest, String pin) throws IOException, XPostilion {
 
 
-
-
         Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
 
         Iso8583Post result = new Iso8583Post();
-
         result.putMsgType(Iso8583Post.MsgType._0200_TRAN_REQ);
         result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
-        result.putField(Iso8583Post.Bit._003_PROCESSING_CODE,driverRequest.getIreq_transaction_type()+"0000");
-        result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION,driverRequest.getAmount());
+        result.putField(Iso8583Post.Bit._003_PROCESSING_CODE, driverRequest.getIreq_transaction_type() + "0000");
+        result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount());
         result.putField(Iso8583Post.Bit._007_TRANSMISSION_DATE_TIME, getTransmissionDateTime());
-        result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR,generateSTAN());
-        result.putField(Iso8583Post.Bit._012_TIME_LOCAL,getLocalTransactionTime());
+
+        result.putField(Iso8583Post.Bit._012_TIME_LOCAL, getLocalTransactionTime());
         result.putField(Iso8583Post.Bit._013_DATE_LOCAL, getLocalTransactionDate());
-        result.putField(Iso8583Post.Bit._023_CARD_SEQ_NR,"000");
-        result.putField(Iso8583Post.Bit._035_TRACK_2_DATA,driverRequest.getTrack2());
+        result.putField(Iso8583Post.Bit._023_CARD_SEQ_NR, "000");
+        result.putField(Iso8583Post.Bit._035_TRACK_2_DATA, driverRequest.getTrack2());
 //        result.putField(Iso8583Post.Bit._037_RETRIEVAL_REF_NR, "321420489260");//Naigurta
 //        result.putField(Iso8583Post.Bit._018_MERCHANT_TYPE, terminal.getMerchant().getMerchantType());
-        result.putField(Iso8583Post.Bit._041_CARD_ACCEPTOR_TERM_ID,terminal.getTerminalId());
+        result.putField(Iso8583Post.Bit._041_CARD_ACCEPTOR_TERM_ID, terminal.getTerminalId());
         result.putField(Iso8583Post.Bit._042_CARD_ACCEPTOR_ID_CODE, terminal.getMerchant().getMerchantId());
 //        result.putField(Iso8583Post.Bit._048_ADDITIONAL_DATA, "0010218923");//Naiguata
         result.putField(Iso8583Post.Bit._049_CURRENCY_CODE_TRAN, "928");
@@ -64,79 +68,58 @@ public class Iso8583Service {
         result.putPrivField(Iso8583Post.PrivBit._002_SWITCH_KEY, "0200070000744892610802163636");//Naiguata
         result.putPrivField(Iso8583Post.PrivBit._009_ADDITIONAL_NODE_DATA, "0014Q31003226TRANRED140");//Naiguata
         result.putPrivField(Iso8583Post.PrivBit._010_CVV_2, "000");//Naiguata
+        result.putPrivField(Iso8583Post.PrivBit._025_ICC_DATA, iccCardService.getTempIcc(driverRequest.getIcc_req_data()));
 
-        result.putPrivField(Iso8583Post.PrivBit._025_ICC_DATA,iccCardService.getTempIcc(driverRequest.getIcc_req_data()));
-        System.out.println("ISO message : "+ result);
-        byte [] ISOMsg = result.toMsg();
+        String stan = transactionService.generateStan(driverRequest,result);
+        result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, stan);
 
-        String hexString = DatatypeConverter.printHexBinary(ISOMsg);
-        System.out.println("ISO Hex message: " + hexString);
-
-        Iso8583Post parsedMessage = new Iso8583Post();
-
-        // Convert byte array back to an ISO8583 message object
-
+        System.out.println("ISO message : " + result);
+        byte[] ISOMsg = result.toMsg();
         byte[] isoMessageWithHeader = createIsoMessageWithHeader(ISOMsg);
-//        System.out.println("isoMessageWithHeader : "+  DatatypeConverter.printHexBinary(isoMessageWithHeader));
         byte[] isoMsgWithIcc = processIsoMessageWithIcc(isoMessageWithHeader, driverRequest.getIcc_req_data());
-        System.out.println("isoMsgWithIcc: "+ DatatypeConverter.printHexBinary(isoMsgWithIcc));
-
-
-
         String formattedHex = formatHexString(DatatypeConverter.printHexBinary(isoMsgWithIcc));
         System.out.println("Formatted Hex:\n" + formattedHex);
-
-        // Convert back to byte array
-        byte[] byteArray = DatatypeConverter.parseHexBinary(hexString);
-
-        System.out.println("Formatted Byte:\n" + DatatypeConverter.printHexBinary(byteArray));
-
-
-        return ISOMsg;
+        return isoMsgWithIcc;
     }
 
-
-
-
-    public  String getTransmissionDateTime() {
+    public String getTransmissionDateTime() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMddHHmmss");
         return LocalDateTime.now().format(formatter);
     }
 
     // Generate Local Time (hhmmss)
-    public  String getLocalTransactionTime() {
+    public String getLocalTransactionTime() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HHmmss");
         return LocalDateTime.now().format(formatter);
     }
 
     // Generate Local Date (MMDD)
-    public  String getLocalTransactionDate() {
+    public String getLocalTransactionDate() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMdd");
         return LocalDateTime.now().format(formatter);
     }
 
     // Generate System Trace Audit Number (STAN) - 6-digit unique ID
-    public String generateSTAN() {
-        System.out.println("Inside");
-        String stan;
-        Transaction newTransaction = new Transaction();
-        if (transactionRepo.findAll().isEmpty()) {
-            System.out.println("NO STAN CREATED ");
-            stan = "000001"; // Initial value
-            newTransaction.setStan(stan);
-            newTransaction.setMsg_type("200");
-            transactionRepo.save(newTransaction);
-        } else {
-            Transaction transaction = transactionRepo.findTopByOrderByIdDesc();
-            int currentStan = Integer.parseInt(transaction.getStan());
-            stan =  String.format("%06d", currentStan + 1);
-            newTransaction.setStan(stan);
-            newTransaction.setMsg_type("200");
-            transactionRepo.save(newTransaction);
-        }
-        return stan;
-    }
-
+//    public String generateSTAN() {
+//        System.out.println("Inside");
+//        String stan;
+//        Transaction newTransaction = new Transaction();
+//        if (transactionRepo.findAll().isEmpty()) {
+//            System.out.println("NO STAN CREATED ");
+//            stan = "000001"; // Initial value
+//            newTransaction.setStan(stan);
+//            newTransaction.setMsg_type("200");
+//            transactionRepo.save(newTransaction);
+//        } else {
+//            Transaction transaction = transactionRepo.findTopByOrderByIdDesc();
+//            int currentStan = Integer.parseInt(transaction.getStan());
+//            stan = String.format("%06d", currentStan + 1);
+//            newTransaction.setStan(stan);
+//            newTransaction.setMsg_type("200");
+//            transactionRepo.save(newTransaction);
+//        }
+//        return stan;
+//    }
 
 
     public byte[] createIsoMessageWithHeader(byte[] byteMsg) {
@@ -159,7 +142,6 @@ public class Iso8583Service {
     }
 
 
-
     public byte[] processIsoMessageWithIcc(byte[] isoMessageWithHeader, String iccDataStr) {
         if (isoMessageWithHeader == null || iccDataStr == null) {
             throw new IllegalArgumentException("Input data cannot be null");
@@ -167,7 +149,7 @@ public class Iso8583Service {
         byte[] iccData = hexStringToByteArray(iccDataStr);
 
 
-        System.out.println("hexStringToByteArray : "+iccData);
+        System.out.println("hexStringToByteArray : " + iccData);
 
         int lengthWithoutIcc = isoMessageWithHeader.length - (iccDataStr.length() / 2);
 
@@ -205,4 +187,66 @@ public class Iso8583Service {
         return formatted.toString().trim();
     }
 
+    public String setResponse(byte[] result) throws XPostilion, JsonProcessingException {
+        Iso8583Post response_Result = new Iso8583Post();
+        response_Result.fromMsg(result);
+        String responsecode = response_Result.getResponseCode();
+        String msg_type = response_Result.getMessageType();
+        String cardHolderName = response_Result.getPrivField(Iso8583Post.PrivBit._017_CARDHOLDER_INFO);
+        String stmt = response_Result.getField(Iso8583Post.Bit._048_ADDITIONAL_DATA);
+        String tranID = response_Result.getField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR);
+        String field_54 = response_Result.getField(Iso8583Post.Bit._054_ADDITIONAL_AMOUNTS);
+        System.out.println("msg_type: " + msg_type);
+        System.out.println("Response Code: " + responsecode);
+        System.out.println("Stan: " + tranID);
+        System.out.println("Stmt: " + stmt);
+        System.out.println("Field 54: " + field_54);
+        System.out.println("Card holder name: " +cardHolderName);
+
+        Map<String, String> resp = new HashMap<>();
+        resp.put("response", responsecode);
+        String jsonString = null;
+        if(cardHolderName != null) {
+            resp.put("card_holder_name", cardHolderName);
+        }
+        if(stmt!=null) {
+            resp.put("statement", stmt);
+        }
+        if(tranID!=null) {
+            resp.put("tran_id", tranID);
+        }
+
+        if(field_54 != null && field_54.length() == 40) {
+            System.out.println("field_54 :: " + field_54);
+            try {
+
+                String part1 = field_54.substring(0, 20);
+                String part2 = field_54.substring(20, 40);
+                String ledgerBalance = part1.substring(8, 20);
+                String availableBalance = part2.substring(8, 20);
+
+                String formattedLedgerBalance = formatBalance(ledgerBalance);
+                String formattedAvailableBalance = formatBalance(availableBalance);
+
+                resp.put("ledger_balance", formattedLedgerBalance);
+                resp.put("available_balance", formattedAvailableBalance);
+
+                System.out.println("Ledger Balance: " + formattedLedgerBalance);
+                System.out.println("Available Balance: " + formattedAvailableBalance);
+
+
+            }  catch (Exception e) {
+                throw  new RuntimeException("Error occurred: " + e.getMessage());
+            }
+        }
+        ObjectMapper objectMapper = new ObjectMapper();
+        jsonString = objectMapper.writeValueAsString(resp);
+        System.out.println("String changed : " + jsonString);
+        return jsonString;
+    }
+
+    private  String formatBalance(String balance) {
+        double value = Double.parseDouble(balance.replaceFirst("^0+(?!$)", "")) / 100.0;
+        return String.format("%.2f", value);
+    }
 }
