@@ -14,8 +14,13 @@ public interface TransactionRepo  extends JpaRepository<Transaction, UUID> {
 
     Transaction findTopByOrderByIdDesc();
 
+//
+//    @Query("SELECT t FROM Transaction t WHERE t.msg_type = :msgType ORDER BY t.created_date DESC")
+//    Page<Transaction> findLatestTransactionByMsgType(@Param("msgType") String msgType, Pageable pageable);
 
-    @Query("SELECT t FROM Transaction t WHERE t.msg_type = :msgType ORDER BY t.created_date DESC")
+    @Query("SELECT t FROM Transaction t WHERE t.msgType = :msgType ORDER BY FUNCTION('TO_TIMESTAMP', t.transactionDateTime, 'YYYY-MM-DD HH24:MI:SS') DESC")
     Page<Transaction> findLatestTransactionByMsgType(@Param("msgType") String msgType, Pageable pageable);
 
+
+    boolean existsByStan(String field);
 }
