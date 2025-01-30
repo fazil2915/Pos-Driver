@@ -1,5 +1,6 @@
 package com.example.pos_driver.Service;
 
+
 import com.example.pos_driver.Model.DriverRequest;
 import com.example.pos_driver.Model.Terminal;
 import org.slf4j.Logger;
@@ -7,17 +8,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
+import javax.xml.bind.DatatypeConverter;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
+
 import java.util.Optional;
 
 @Service
 public class SwitchService {
 
+
     @Autowired
     private VitaService vitaService;
+
 
     private static final Logger logger = LoggerFactory.getLogger(SwitchService.class);
 
@@ -60,10 +66,11 @@ public class SwitchService {
         } catch (IOException e) {
             logger.error("Switch connection failed: ", e);
             return isoMsg;  // or handle failure as appropriate
+
+
         }
     }
-
-    public String formatData(byte[] data) {
+public String formatData(byte[] data) {
         StringBuilder sb = new StringBuilder();
         int pos = 0;
         int lines = data.length / 16;
@@ -100,4 +107,5 @@ public class SwitchService {
         result[1] = (byte) (data.length & 0xFF);
         return result;
     }
+ 
 }
