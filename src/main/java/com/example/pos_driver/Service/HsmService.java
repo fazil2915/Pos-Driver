@@ -36,7 +36,7 @@ public class HsmService {
     public String communicateWithHSM(DriverRequest driverRequest) throws IOException {
 //
         String pan = driverRequest.getPan();
-        logger.debug("Request: "+driverRequest);
+        logger.debug("Command sending to hsm for clear pin.: "+driverRequest);
         String pin = pinDecryption.pinDecrypting(driverRequest.getPin());
 //        String initialHsmComm = "00BA"+pin+amount;
 //
@@ -102,7 +102,7 @@ public class HsmService {
         try{
             JGCommand jgCommand = new JGCommand.JGCommandBuilder()
                     .withKey(key)
-                    .withAccountNumber(DataValidator.makeAccountNumberFromPan("4048345005560466"))
+                    .withAccountNumber(DataValidator.makeAccountNumberFromPan(pan))
                     .withEncPin(encryptedPin)
                     .build();
 
@@ -115,7 +115,7 @@ public class HsmService {
             System.out.println("HSM Response: " + response);
 
             String encryptedPinafterJG = jgCommand.getEncryptedPin();
-            System.out.println("Encrypted PIN: " + encryptedPinafterJG);
+            System.out.println("Encrypted PIN from Hsm: " + encryptedPinafterJG);
             return  encryptedPinafterJG;
 
         }catch (IOException e){
@@ -130,58 +130,6 @@ public class HsmService {
         }
         return pan.substring(pan.length() - 13, pan.length() - 1);
     }
-//
-//    private String sendToHSM(String message, String host, String port) {
-//        Socket socket = null;
-//        BufferedOutputStream outStream = null;
-//        DataInputStream dis = null;
-//
-//        try {
-//                socket = new Socket(host, Integer.parseInt(port));
-//                outStream = new BufferedOutputStream(socket.getOutputStream());
-//                dis = new DataInputStream(socket.getInputStream());
-//
-//                logger.info("HSM Connected to {}:{}", host, port);
-//                logger.debug("message inner {}", message);
-//
-//                // Convert the string message to raw bytes using ISO-8859-1 encoding
-//                byte[] messageBytes = message.getBytes(StandardCharsets.ISO_8859_1);
-//                logger.debug("Message bytes (raw): {}", javax.xml.bind.DatatypeConverter.printHexBinary(messageBytes));
-//
-//                logger.debug("message byte :"+messageBytes);
-//                outStream.write(messageBytes);
-//                outStream.flush();
-//
-//                logger.info("Sent to HSM: {}", javax.xml.bind.DatatypeConverter.printHexBinary(messageBytes));
-//
-//
-//                int responseLength = dis.readUnsignedShort();
-//
-//               logger.debug("response Length "+responseLength);
-//                if (responseLength > 0) {
-//                    byte[] response = new byte[responseLength];
-//                    dis.readFully(response, 0, responseLength);
-//                    String responseString = new String(response);
-//                    logger.info("Response from HSM: {}", responseString);
-//                    return responseString;
-//                }
-//            } catch (IOException e) {
-//                logger.error("Error communicating with HSM: {}", e.getMessage(), e);
-//            } finally {
-//            // Ensure resources are closed
-//            if (dis != null) {
-//                try { dis.close(); } catch (IOException e) { logger.error("Error closing input stream", e); }
-//            }
-//            if (outStream != null) {
-//                try { outStream.close(); } catch (IOException e) { logger.error("Error closing output stream", e); }
-//            }
-//            if (socket != null) {
-//                try { socket.close(); } catch (IOException e) { logger.error("Error closing socket", e); }
-//            }
-//        }
-//
-//        return null;
-//    }
 
     private String extractPin(String hsmResponse) {
         if (hsmResponse == null || hsmResponse.length() < 5) {

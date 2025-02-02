@@ -16,10 +16,19 @@ import org.springframework.web.bind.annotation.*;
 import postilion.realtime.sdk.util.XPostilion;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @RestController
+@RequestMapping("/api")
 public class DriverController {
 
     private static final Logger logger = LoggerFactory.getLogger(DriverController.class);
@@ -46,7 +55,7 @@ public class DriverController {
         this.pinDecryption = pinDecryption;
     }
 
-    @PostMapping("/test")
+    @PostMapping("/posDriver")
     public ResponseEntity<?> checkTerminal(@RequestBody DriverRequest driver) throws IOException, XPostilion {
         logger.info("Received request to check terminal for serial number: {}", driver.getSl_no());
 
@@ -68,7 +77,7 @@ public class DriverController {
             String pin = hsmService.communicateWithHSM(driver);
             logger.debug("Encrypted pin: {}", pin);
             byte[] isoMsg = iso8583Service.createIso8583Message(driver, pin);
-            logger.info("iso message");
+            logger.info("Iso message created");
             if (isoMsg == null) {
                 return ResponseEntity.ok(new PosTransRes("Error in ISO message creation", "false", "false"));
             }
@@ -85,6 +94,51 @@ public class DriverController {
 
         return (ResponseEntity<?>) ResponseEntity.ok(new PosTransRes("Verification failed.", "false", "false"));
     }
+
+
+    private static final String LOGS_DIRECTORY = "logs"; // Adjust if needed
+
+    // Get a list of all available log files
+    @GetMapping("/logs")
+    public List<String> listLogFiles() throws IOException {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(LOGS_DIRECTORY), "application-*.log")) {
+            return StreamSupport.stream(stream.spliterator(), false)
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    // Get logs for a specific date (format: YYYY-MM-DD)
+    @GetMapping("/logs/{date}")
+    public List<String> getLogsByDate(@PathVariable String date) throws IOException {
+        String logFileName = "application-" + date + ".log";
+        Path logFilePath = Paths.get(LOGS_DIRECTORY, logFileName);
+
+        if (!Files.exists(logFilePath)) {
+            throw new IOException("Log file for " + date + " not found.");
+        }
+
+        // Read the log file, filter by .Service. or .Controller., and insert line breaks after specific messages
+        return Files.lines(logFilePath)
+                .filter(line -> line.contains(".Service.") || line.contains(".Controller."))
+                .map(line -> {
+                    // Insert a line break after specific patterns
+                    if (line.contains("Switch connection failed:")) {
+                        return line + "\n";  // Add a line break after SwitchService message
+                    } else if (line.contains(".Controller.DriverController")) {
+                        return line + "\n";  // Add a line break after DriverController message
+                    }
+                    return line;  // No change for other lines
+                })
+                .flatMap(line -> {
+                    // Here we split the log line to ensure it gets a line break after the matched conditions
+                    return Stream.of(line.split("\n"));
+                })
+                .collect(Collectors.toList());
+    }
+
+
 
     @PostMapping("/test2")
     public String testApi(@RequestBody DriverRequest driverRequest) {

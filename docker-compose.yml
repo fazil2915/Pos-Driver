@@ -23,7 +23,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5434:5434"
+      - "5434:5432"  # Maps container's 5432 to your host's 5434
     networks:
       - app-network
 
