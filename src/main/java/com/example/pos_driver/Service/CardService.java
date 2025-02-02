@@ -25,7 +25,7 @@ public class CardService {
 
         if (terminalOptional.isPresent()) {
             Terminal terminal = terminalOptional.get();
-            logger.info("Terminal found: " + terminal.toString());
+            logger.info("Terminal found: serial number");
             return "true";
 //            return "Transaction processed for terminal: " + terminal.getSerialNumber();
         } else {
