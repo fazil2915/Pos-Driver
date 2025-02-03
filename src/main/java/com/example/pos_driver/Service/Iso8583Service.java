@@ -45,7 +45,7 @@ public class Iso8583Service {
 
 
         Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
-        String stan = transactionService.generateStan(driverRequest);
+
         Iso8583Post result = new Iso8583Post();
         result.putMsgType(Iso8583Post.MsgType._0200_TRAN_REQ);
         result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
@@ -53,7 +53,7 @@ public class Iso8583Service {
         result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount());
         result.putField(Iso8583Post.Bit._007_TRANSMISSION_DATE_TIME, getTransmissionDateTime());
 
-        result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, stan);
+
         result.putField(Iso8583Post.Bit._012_TIME_LOCAL, getLocalTransactionTime());
         result.putField(Iso8583Post.Bit._013_DATE_LOCAL, getLocalTransactionDate());
         result.putField(Iso8583Post.Bit._023_CARD_SEQ_NR, "000");
@@ -71,10 +71,11 @@ public class Iso8583Service {
         result.putPrivField(Iso8583Post.PrivBit._010_CVV_2, "000");//Naiguata
         result.putPrivField(Iso8583Post.PrivBit._025_ICC_DATA, iccCardService.getTempIcc(driverRequest.getIcc_req_data()));
 
-
+        String stan = transactionService.generateStan();
+        result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, stan);
         transactionService.createTransaction(driverRequest,result);
 
-        System.out.println("ISO message : " + result);
+//        System.out.println("ISO message : " + result);
         byte[] ISOMsg = result.toMsg();
         byte[] isoMessageWithHeader = createIsoMessageWithHeader(ISOMsg);
         byte[] isoMsgWithIcc = processIsoMessageWithIcc(isoMessageWithHeader, driverRequest.getIcc_req_data());
@@ -190,8 +191,9 @@ public class Iso8583Service {
 
     public String setResponse(byte[] result, DriverRequest driverRequest) throws XPostilion, JsonProcessingException {
         Iso8583Post response_Result = new Iso8583Post();
-        response_Result.fromMsg(result);
 
+        response_Result.fromMsg(result);
+        System.out.println("RESPONSE ISO: "+response_Result);
         if(!transactionRepo.existsByStan(response_Result.getField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR))){
             return "Received STAN is not in the table  ";
         }

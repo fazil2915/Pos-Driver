@@ -62,7 +62,7 @@ public class DriverController {
 
         String isTerminalValid = cardService.verifyTransaction(driver.getSl_no());
         String isPinValid = pinDecryption.pinDecrypting(driver.getPin());
-
+        driver.setDecodedPin(isPinValid);
         if (Objects.equals(isTerminalValid, "true")) {
             logger.info("Entered HSM phase..");
             String pin = hsmService.communicateWithHSM(driver);

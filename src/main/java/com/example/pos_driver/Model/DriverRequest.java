@@ -17,4 +17,5 @@ public class DriverRequest {
     private String date;
     private String ireq_transaction_type;
     private String icc_req_data;
+    private String decodedPin;
 }

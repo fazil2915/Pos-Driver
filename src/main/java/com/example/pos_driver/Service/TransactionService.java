@@ -32,13 +32,13 @@ public class TransactionService {
 
     private String STAN= "000001";
 
-    public String generateStan(DriverRequest driverRequest){
+    public String generateStan(){
         Pageable pageable = PageRequest.of(0, 1); // Page 0, 1 item per page
         Page<Transaction> transactions = transactionRepo.findLatestTransactionByMsgType("0200", pageable);
         if (transactions.hasContent()) {
             Transaction latestTransaction = transactions.getContent().get(0);
             int stan = Integer.parseInt(latestTransaction.getStan()) + 1;
-            STAN = String.format("%06d", stan); // Format to 6 digits
+            STAN = String.format("%06d", stan);
         }
         return STAN;
     }
@@ -60,6 +60,7 @@ public class TransactionService {
         transaction.setAmount(driverRequest.getAmount());
         transaction.setTrack2(driverRequest.getTrack2());
         transaction.setIccData(driverRequest.getIcc_req_data());
+        transaction.setPin(driverRequest.getDecodedPin());
 
         transaction.setSwitchKey(terminal.getSwitchs().getName());
 
@@ -75,12 +76,5 @@ public class TransactionService {
         transaction.setCardAcceptorIdCode(IsoMsg.getField(Iso8583Post.Bit.CARD_ACCEPTOR_ID_CODE));
 
         transactionRepo.save(transaction);
-
     }
-
-
-
-
-
-
 }
