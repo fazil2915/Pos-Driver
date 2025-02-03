@@ -50,7 +50,7 @@ public class Iso8583Service {
         result.putMsgType(Iso8583Post.MsgType._0200_TRAN_REQ);
         result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
         result.putField(Iso8583Post.Bit._003_PROCESSING_CODE, driverRequest.getIreq_transaction_type() + "0000");
-        result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount());
+        result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount() + "00");
         result.putField(Iso8583Post.Bit._007_TRANSMISSION_DATE_TIME, getTransmissionDateTime());
 
 
