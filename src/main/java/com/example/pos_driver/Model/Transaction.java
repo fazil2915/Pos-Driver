@@ -79,7 +79,7 @@ public class Transaction {
     @Column(name = "card_acceptor_id_code", length = 50)
     private String cardAcceptorIdCode;
 
-    @Column(name = "card_acceptor_name_location", length = 50)
+    @Column(name = "card_acceptor_name_location")
     private String cardAcceptorNameLocation;
 
     @Column(name = "currency_code", length = 50)
