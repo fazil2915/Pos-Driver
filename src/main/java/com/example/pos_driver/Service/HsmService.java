@@ -38,38 +38,22 @@ public class HsmService {
         String pan = driverRequest.getPan();
         logger.debug("Command sending to hsm for clear pin.: "+driverRequest);
         String pin = pinDecryption.pinDecrypting(driverRequest.getPin());
-//        String initialHsmComm = "00BA"+pin+amount;
-//
-//        logger.debug("message " +initialHsmComm);
-//
+
         // Fetch terminal and HSM details
         Optional<Terminal> terminalOptional = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no());
         if (!terminalOptional.isPresent()) {
             logger.error("Terminal not found for serial number: {}", driverRequest.getSl_no());
             return null;
         }
-//
         Terminal terminal = terminalOptional.get();
         String hsmHost = terminal.getHsm().getIp();
         String hsmPort = terminal.getHsm().getPort();
 
         HsmConnection hsmCon = new HsmConnection(hsmHost, Integer.parseInt(hsmPort));
 
-//        BAcommand baCommand = new BAcommand.BAcommandBuilder()
-//                .withPin("5822")
-//                .withAccountNumber(DataValidator.makeAccountNumberFromPan("4048345005560466"))
-//                .build();
-//
-//        hsmCon.sendCommand(baCommand);
-//        baCommand.parse(hsmCon.getResponse());
-//        String encryptedPin = baCommand.getEncryptedPin();
-//        System.out.println("Enc pin : " + encryptedPin);
-
         String  encryptedPin = sendBaCommand(pin,pan,hsmCon);
         String KEY= vitaService.getKeyValue("POS_ZMK");
         String encryptedPinafterJG = sendJgCommand(KEY,pan,encryptedPin,hsmCon);
-
-
 
         return encryptedPinafterJG;
     }
