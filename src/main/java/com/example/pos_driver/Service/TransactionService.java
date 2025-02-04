@@ -72,7 +72,7 @@ public class TransactionService {
         transaction.setRespCode(IsoMsg.getResponseCode());
 
         transaction.setMsgType(IsoMsg.getMessageType());
-        if(Objects.equals(transaction.getMsgType(), "0610")){
+        if(Objects.equals(transaction.getMsgType(), "0600")){
             transaction.setMsgType("0200");
         }
         if(Objects.equals(transaction.getMsgType(), "0610")){
