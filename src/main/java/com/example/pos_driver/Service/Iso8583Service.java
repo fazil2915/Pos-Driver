@@ -50,9 +50,20 @@ public class Iso8583Service {
         Iso8583Post result = new Iso8583Post();
         result.putMsgType(Iso8583Post.MsgType._0200_TRAN_REQ);
 
-//        if(Objects.equals(driverRequest.getIreq_transaction_type(), "92")){
-//            result.putMsgType(Iso8583Post.MsgType._0600_ADMIN_REQ);
-//        }
+        if(Objects.equals(driverRequest.getIreq_transaction_type(), "92")){
+            System.out.println("Success pin chnage");
+            result.putMsgType(Iso8583Post.MsgType._0600_ADMIN_REQ);
+            String newDecodedPin = driverRequest.getDecodedNewPin();
+            if (newDecodedPin.length() < 48) {
+                StringBuilder binaryBuilder = new StringBuilder();
+                while (binaryBuilder.length() + newDecodedPin.length() < 96) {
+                    binaryBuilder.append('0');
+                }
+                binaryBuilder.append(newDecodedPin);
+                newDecodedPin = binaryBuilder.toString();
+            }
+            result.putField(Iso8583Post.Bit._053_SECURITY_INFO, Transform.fromHexToBin(newDecodedPin));
+        }
         result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
         result.putField(Iso8583Post.Bit._003_PROCESSING_CODE, driverRequest.getIreq_transaction_type() + "0000");
         result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount() + "00");
@@ -81,7 +92,7 @@ public class Iso8583Service {
         driverRequest.setStan(stan);
         transactionService.createTransaction(driverRequest,result);
 
-//        System.out.println("ISO message : " + result);
+        System.out.println("ISO message>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> : " + result);
         byte[] ISOMsg = result.toMsg();
         byte[] isoMessageWithHeader = createIsoMessageWithHeader(ISOMsg);
         byte[] isoMsgWithIcc = processIsoMessageWithIcc(isoMessageWithHeader, driverRequest.getIcc_req_data());

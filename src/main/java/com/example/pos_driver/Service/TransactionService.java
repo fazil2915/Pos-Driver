@@ -15,6 +15,7 @@ import postilion.realtime.sdk.util.XPostilion;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -69,8 +70,15 @@ public class TransactionService {
         transaction.setDate(now.format(dateFormatter));
         transaction.setTime(now.format(timeFormatter));
         transaction.setRespCode(IsoMsg.getResponseCode());
+
         transaction.setMsgType(IsoMsg.getMessageType());
- 
+        if(Objects.equals(transaction.getMsgType(), "0610")){
+            transaction.setMsgType("0200");
+        }
+        if(Objects.equals(transaction.getMsgType(), "0610")){
+            transaction.setMsgType("0210");
+        }
+
 
         transaction.setCardAcceptorNameLocation(IsoMsg.getPrivField(Iso8583Post.PrivBit._017_CARDHOLDER_INFO));
         transaction.setStan(IsoMsg.getField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR));

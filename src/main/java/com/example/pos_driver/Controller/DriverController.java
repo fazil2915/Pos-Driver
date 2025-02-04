@@ -74,9 +74,13 @@ public class DriverController {
         driver.setDecodedPin(isPinValid);
         if (Objects.equals(isTerminalValid, "true")) {
             logger.info("Entered HSM phase..");
-            String pin = hsmService.communicateWithHSM(driver);
+            String pin = hsmService.communicateWithHSM(driver,driver.getPin());
             logger.debug("Encrypted pin: {}", pin);
             driver.setHsmPin(pin);
+            if(!(driver.getNew_pin() == null)){
+                String newPinBlock = hsmService.communicateWithHSM(driver,driver.getNew_pin());
+                driver.setDecodedNewPin(newPinBlock);
+            }
             byte[] isoMsg = iso8583Service.createIso8583Message(driver, pin);
             logger.info("Iso message created");
             if (isoMsg == null) {

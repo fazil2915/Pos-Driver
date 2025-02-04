@@ -20,4 +20,6 @@ public class DriverRequest {
     private String decodedPin;
     private String stan;
     private String hsmPin;
+    private String new_pin;
+    private String decodedNewPin;
 }
