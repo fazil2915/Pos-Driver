@@ -49,6 +49,7 @@ public class HsmService {
         String hsmHost = terminal.getHsm().getIp();
         String hsmPort = terminal.getHsm().getPort();
 
+        System.out.println("Host : "+ hsmHost+" Port : "+hsmPort);
         HsmConnection hsmCon = new HsmConnection(hsmHost, Integer.parseInt(hsmPort));
 
         String  encryptedPin = sendBaCommand(pin,pan,hsmCon);

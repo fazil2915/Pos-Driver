@@ -76,6 +76,7 @@ public class DriverController {
             logger.info("Entered HSM phase..");
             String pin = hsmService.communicateWithHSM(driver);
             logger.debug("Encrypted pin: {}", pin);
+            driver.setHsmPin(pin);
             byte[] isoMsg = iso8583Service.createIso8583Message(driver, pin);
             logger.info("Iso message created");
             if (isoMsg == null) {

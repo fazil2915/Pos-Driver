@@ -18,4 +18,6 @@ public class DriverRequest {
     private String ireq_transaction_type;
     private String icc_req_data;
     private String decodedPin;
+    private String stan;
+    private String hsmPin;
 }

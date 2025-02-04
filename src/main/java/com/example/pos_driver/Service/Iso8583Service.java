@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class Iso8583Service {
@@ -48,6 +49,10 @@ public class Iso8583Service {
 
         Iso8583Post result = new Iso8583Post();
         result.putMsgType(Iso8583Post.MsgType._0200_TRAN_REQ);
+
+//        if(Objects.equals(driverRequest.getIreq_transaction_type(), "92")){
+//            result.putMsgType(Iso8583Post.MsgType._0600_ADMIN_REQ);
+//        }
         result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
         result.putField(Iso8583Post.Bit._003_PROCESSING_CODE, driverRequest.getIreq_transaction_type() + "0000");
         result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount() + "00");
@@ -73,6 +78,7 @@ public class Iso8583Service {
 
         String stan = transactionService.generateStan();
         result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, stan);
+        driverRequest.setStan(stan);
         transactionService.createTransaction(driverRequest,result);
 
 //        System.out.println("ISO message : " + result);
@@ -263,6 +269,48 @@ public class Iso8583Service {
         double value = Double.parseDouble(balance.replaceFirst("^0+(?!$)", "")) / 100.0;
         return String.format("%.2f", value);
     }
+
+
+
+
+    public void createIso8583ErrorMessage(DriverRequest driverRequest) throws IOException, XPostilion {
+        Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
+
+        Iso8583Post result = new Iso8583Post();
+        result.putMsgType(Iso8583Post.MsgType._0210_TRAN_REQ_RSP);
+        result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
+        result.putField(Iso8583Post.Bit._003_PROCESSING_CODE, driverRequest.getIreq_transaction_type() + "0000");
+        result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount() + "00");
+        result.putField(Iso8583Post.Bit._007_TRANSMISSION_DATE_TIME, getTransmissionDateTime());
+        result.putField(Iso8583Post.Bit._039_RSP_CODE,"91");
+        result.putField(Iso8583Post.Bit._012_TIME_LOCAL, getLocalTransactionTime());
+        result.putField(Iso8583Post.Bit._013_DATE_LOCAL, getLocalTransactionDate());
+        result.putField(Iso8583Post.Bit._023_CARD_SEQ_NR, "000");
+        result.putField(Iso8583Post.Bit._035_TRACK_2_DATA, driverRequest.getTrack2());
+//        result.putField(Iso8583Post.Bit._037_RETRIEVAL_REF_NR, "321420489260");//Naigurta
+//        result.putField(Iso8583Post.Bit._018_MERCHANT_TYPE, terminal.getMerchant().getMerchantType());
+        result.putField(Iso8583Post.Bit._041_CARD_ACCEPTOR_TERM_ID, terminal.getTerminalId());
+        result.putField(Iso8583Post.Bit._042_CARD_ACCEPTOR_ID_CODE, terminal.getMerchant().getMerchantId());
+//        result.putField(Iso8583Post.Bit._048_ADDITIONAL_DATA, "0010218923");//Naiguata
+        result.putField(Iso8583Post.Bit._049_CURRENCY_CODE_TRAN, "928");
+        result.putField(Iso8583Post.Bit._052_PIN_DATA, Transform.fromHexToBin(driverRequest.getHsmPin()));
+        result.putField(Iso8583Post.Bit._123_POS_DATA_CODE, "310101511336101");
+        result.putPrivField(Iso8583Post.PrivBit._002_SWITCH_KEY, "0200070000744892610802163636");//Naiguata
+        result.putPrivField(Iso8583Post.PrivBit._009_ADDITIONAL_NODE_DATA, "0014Q31003226TRANRED140");//Naiguata
+        result.putPrivField(Iso8583Post.PrivBit._010_CVV_2, "000");//Naiguata
+        result.putPrivField(Iso8583Post.PrivBit._025_ICC_DATA, iccCardService.getTempIcc(driverRequest.getIcc_req_data()));
+        result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, driverRequest.getStan());
+        transactionService.createTransaction(driverRequest,result);
+    }
+
+
+
+
+
+
+
+
+
 
 }
 
