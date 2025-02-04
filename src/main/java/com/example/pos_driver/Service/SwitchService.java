@@ -3,6 +3,10 @@ package com.example.pos_driver.Service;
 
 import com.example.pos_driver.Model.DriverRequest;
 import com.example.pos_driver.Model.Terminal;
+
+import postilion.realtime.sdk.message.bitmap.Iso8583Post;
+import postilion.realtime.sdk.util.XPostilion;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +28,13 @@ public class SwitchService {
     @Autowired
     private VitaService vitaService;
 
+    @Autowired
+    private Iso8583Service iso8583Service;
+
 
     private static final Logger logger = LoggerFactory.getLogger(SwitchService.class);
 
-    public byte[] connectToSwitch(byte[] isoMsg, DriverRequest driverRequest) {
+    public byte[] connectToSwitch(byte[] isoMsg, DriverRequest driverRequest) throws XPostilion, IOException {
         Optional<Terminal> terminalOptional = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no());
         if (!terminalOptional.isPresent() || terminalOptional.get().getSwitchs() == null) {
             logger.error("Switch details not found for terminal: {}", driverRequest.getSl_no());
@@ -61,6 +68,7 @@ public class SwitchService {
             return responseWithoutHeader;
 
         } catch (IOException e) {
+           iso8583Service.createIso8583ErrorMessage(driverRequest);
             logger.error("Switch connection failed: ", e);
             return null;  // or handle failure as appropriate
         }
