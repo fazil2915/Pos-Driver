@@ -57,15 +57,24 @@ public class DriverController {
 
     @PostMapping("/posDriver")
     public ResponseEntity<?> checkTerminal(@RequestBody DriverRequest driver) throws IOException, XPostilion {
+        logger.info("====================================================");
+        logger.info("Transaction is Started");
+        logger.info("====================================================");
         logger.info("Received request to check terminal for serial number: {}", driver.getSl_no());
-
+        logger.info("Received a request for {}",iso8583Service.getResponseMessage(driver.getIreq_transaction_type()));
         if (driver.getSl_no() == null || driver.getSl_no().trim().isEmpty()) {
             logger.warn("Serial number is missing in the request.");
+            logger.info("====================================================");
+            logger.info("End of Transaction");
+            logger.info("=====================================================");
             return ResponseEntity.ok(new PosTransRes("Serial number is required.", "false", "false"));
         }
 
         if (driver.getPin() == null || driver.getPin().trim().isEmpty()) {
             logger.warn("Pin number is missing in the request.");
+            logger.info("====================================================");
+            logger.info("End of Transaction");
+            logger.info("====================================================");
             return ResponseEntity.ok(new PosTransRes("Pin number is required.", "false", "false"));
         }
 
@@ -74,29 +83,38 @@ public class DriverController {
         driver.setDecodedPin(isPinValid);
         if (Objects.equals(isTerminalValid, "true")) {
             logger.info("Entered HSM phase..");
-            String pin = hsmService.communicateWithHSM(driver,driver.getPin());
+            String pin = hsmService.communicateWithHSM(driver, driver.getPin());
             logger.debug("Encrypted pin: {}", pin);
             driver.setHsmPin(pin);
-            if(!(driver.getNew_pin() == null)){
-                String newPinBlock = hsmService.communicateWithHSM(driver,driver.getNew_pin());
+            if (!(driver.getNew_pin() == null)) {
+                String newPinBlock = hsmService.communicateWithHSM(driver, driver.getNew_pin());
                 driver.setDecodedNewPin(newPinBlock);
             }
             byte[] isoMsg = iso8583Service.createIso8583Message(driver, pin);
             logger.info("Iso message created");
             if (isoMsg == null) {
+                logger.info("====================================================");
+                logger.info("End of Transaction");
+                logger.info("====================================================\n\n\n");
                 return ResponseEntity.ok(new PosTransRes("Error in ISO message creation", "false", "false"));
             }
 
             byte[] switchResponse = switchService.connectToSwitch(isoMsg, driver);
             if (switchResponse == null) {
+                logger.info("====================================================");
+                logger.info("End of Transaction");
+                logger.info("====================================================\n\n\n");
                 return ResponseEntity.ok(new PosTransRes("Socket connection failed.", "false", "false"));
             }
 
             String receiveResponse = iso8583Service.setResponse(switchResponse, driver);
             logger.info("iso response :" + receiveResponse);
+            logger.info("====================================================");
+            logger.info("End of Transaction");
+            logger.info("====================================================\n\n\n");
             return ResponseEntity.ok(receiveResponse);
         }
-
+        logger.info("\n\n");
         return (ResponseEntity<?>) ResponseEntity.ok(new PosTransRes("Verification failed.", "false", "false"));
     }
 
@@ -123,10 +141,10 @@ public class DriverController {
         if ((!Files.exists(logFilePath)) && (!Files.exists(logFilePath2))) {
             throw new IOException("Log file for " + date + " not found.");
         }
-        System.out.println("logFileName: "+ logFilePath);
+        System.out.println("logFileName: " + logFilePath);
         if (logFilePath.toString().equals("logs\\application-application.log")) {
             logFileName = "application.log";
-             logFilePath = Paths.get(LOGS_DIRECTORY, logFileName);
+            logFilePath = Paths.get(LOGS_DIRECTORY, logFileName);
 
         }
 

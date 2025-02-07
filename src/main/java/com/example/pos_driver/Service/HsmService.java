@@ -26,6 +26,7 @@ public class HsmService {
     private VitaService vitaService;
 
     private static final Logger logger = LoggerFactory.getLogger(HsmService.class);
+
     private static final String DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=Aptpos;user=sa;password=password@123";
 
     @Autowired
@@ -36,7 +37,7 @@ public class HsmService {
     public String communicateWithHSM(DriverRequest driverRequest, String pinBlock) throws IOException {
 //
         String pan = driverRequest.getPan();
-        logger.debug("Command sending to hsm for clear pin.: "+driverRequest);
+        logger.debug("Command sending to hsm for clear pin..");
         String pin = pinDecryption.pinDecrypting(pinBlock);
 
         // Fetch terminal and HSM details
@@ -62,6 +63,8 @@ public class HsmService {
 
     private String sendBaCommand(String pin, String  pan, HsmConnection hsmCon){
         try {
+
+            logger.info("Sending BA command to HSM.");
             BAcommand baCommand = new BAcommand.BAcommandBuilder()
                     .withPin(pin)
                     .withAccountNumber(DataValidator.makeAccountNumberFromPan(pan))
@@ -73,11 +76,12 @@ public class HsmService {
             hsmCon.sendCommand(baCommand);
             baCommand.parse(hsmCon.getResponse());
             String encryptedPin = baCommand.getEncryptedPin();
-            System.out.println("Enc pin : " + encryptedPin);
+            logger.info("Response BB received  from  HSM.");
             return encryptedPin;
 
         }catch (IOException e){
             hsmCon.close();
+            logger.info("Error during sending BA command to HSM.");
             throw new RuntimeException("Error during Ba Command: "+e.getMessage());
         }
     }
@@ -85,6 +89,7 @@ public class HsmService {
     private String sendJgCommand(String key,String pan,String encryptedPin,HsmConnection hsmCon){
 
         try{
+            logger.info("Sending JG command to HSM.");
             JGCommand jgCommand = new JGCommand.JGCommandBuilder()
                     .withKey(key)
                     .withAccountNumber(DataValidator.makeAccountNumberFromPan(pan))
@@ -100,11 +105,13 @@ public class HsmService {
             System.out.println("HSM Response: " + response);
 
             String encryptedPinafterJG = jgCommand.getEncryptedPin();
+            logger.info("Response JH received  from  HSM.");
             System.out.println("Encrypted PIN from Hsm: " + encryptedPinafterJG);
             return  encryptedPinafterJG;
 
         }catch (IOException e){
             hsmCon.close();
+            logger.info("Error during sending JG command to HSM.");
             throw new RuntimeException("Error during Ba Command: "+e.getMessage());
         }
 
