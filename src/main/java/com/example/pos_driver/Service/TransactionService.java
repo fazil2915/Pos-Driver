@@ -15,6 +15,7 @@ import postilion.realtime.sdk.util.XPostilion;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -34,7 +35,7 @@ public class TransactionService {
 
     public String generateStan(){
         Pageable pageable = PageRequest.of(0, 1); // Page 0, 1 item per page
-        Page<Transaction> transactions = transactionRepo.findLatestTransactionByMsgType("0200", pageable);
+        Page<Transaction> transactions = transactionRepo.findLatestTransactionByMsgType( pageable);
         if (transactions.hasContent()) {
             Transaction latestTransaction = transactions.getContent().get(0);
             int stan = Integer.parseInt(latestTransaction.getStan()) + 1;
@@ -69,9 +70,10 @@ public class TransactionService {
         transaction.setDate(now.format(dateFormatter));
         transaction.setTime(now.format(timeFormatter));
         transaction.setRespCode(IsoMsg.getResponseCode());
-        transaction.setMsgType(IsoMsg.getMessageType());
- 
 
+        transaction.setMsgType(IsoMsg.getMessageType());
+
+        transaction.setProcessingCode(IsoMsg.getField(Iso8583Post.Bit._003_PROCESSING_CODE));
         transaction.setCardAcceptorNameLocation(IsoMsg.getPrivField(Iso8583Post.PrivBit._017_CARDHOLDER_INFO));
         transaction.setStan(IsoMsg.getField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR));
         transaction.setCardAcceptorTerminalId(IsoMsg.getField(Iso8583Post.Bit._041_CARD_ACCEPTOR_TERM_ID));
