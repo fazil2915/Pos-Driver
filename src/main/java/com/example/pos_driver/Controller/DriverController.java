@@ -1,18 +1,18 @@
 package com.example.pos_driver.Controller;
 
 import com.example.pos_driver.Model.DriverRequest;
-import com.example.pos_driver.Service.HsmService;
-import com.example.pos_driver.Service.Iso8583Service;
-import com.example.pos_driver.Service.VitaService;
-import com.example.pos_driver.Service.SwitchService;
+import com.example.pos_driver.Service.*;
 import com.example.pos_driver.dto.PosTransRes;
 import com.example.pos_driver.Repo.PinDecryption;
+
 import com.example.pos_driver.Service.CardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import postilion.realtime.sdk.util.XPostilion;
@@ -22,9 +22,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -34,6 +32,8 @@ import java.util.stream.StreamSupport;
 @Tag(name = "Driver API", description = "Operations related to pos driver")
 @RequestMapping("/api")
 public class DriverController {
+    @Autowired
+    private ConfigurableEnvironment environment;
 
     private static final Logger logger = LoggerFactory.getLogger(DriverController.class);
 
@@ -177,4 +177,56 @@ public class DriverController {
                 })
                 .collect(Collectors.toList());
     }
+
+
+    @PostMapping("/update/logSettings")
+    public ResponseEntity<Map<String, String>> updateLoggingConfig(@RequestBody Map<String, String> config) {
+        Map<String, String> response = new HashMap<>();
+
+        config.forEach((key, value) -> {
+            System.setProperty("log." + key, value);
+            response.put("log." + key, value);
+        });
+
+        // Reload Logback configuration
+        LogService.reloadConfiguration();
+
+        logger.warn("Updated log settings: {}", response);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/update/consoleLogging")
+    public ResponseEntity<Map<String, String>> updateConsoleLogging(@RequestParam boolean enableConsoleLogging) {
+        System.setProperty("log.console.enabled", String.valueOf(enableConsoleLogging));
+
+        // Reload Logback configuration
+        LogService.reloadConfiguration();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("log.console.enabled", String.valueOf(enableConsoleLogging));
+
+        logger.info("Updated console logging setting: {}", enableConsoleLogging);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/update/logLevel")
+    public ResponseEntity<Map<String, String>> updateLogLevel(@RequestParam String level) {
+        System.setProperty("log.level", level.toUpperCase());
+
+        // Reload Logback configuration
+        LogService.reloadConfiguration();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("log.level", level.toUpperCase());
+
+        logger.warn("Log level updated to {}", level.toUpperCase());
+        return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping("/test2")
+    public String testApi(@RequestBody DriverRequest driverRequest) {
+        return "";
+    }
+
 }

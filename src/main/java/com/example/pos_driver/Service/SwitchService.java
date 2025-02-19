@@ -1,19 +1,16 @@
 package com.example.pos_driver.Service;
 
-
 import com.example.pos_driver.Model.DriverRequest;
 import com.example.pos_driver.Model.Terminal;
 
-import postilion.realtime.sdk.message.bitmap.Iso8583Post;
+
 import postilion.realtime.sdk.util.XPostilion;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-
-
-import javax.xml.bind.DatatypeConverter;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -24,12 +21,14 @@ import java.util.Optional;
 @Service
 public class SwitchService {
 
+    private final VitaService vitaService;
+    private final Iso8583Service iso8583Service;
 
     @Autowired
-    private VitaService vitaService;
-
-    @Autowired
-    private Iso8583Service iso8583Service;
+    public SwitchService(@Lazy VitaService vitaService, @Lazy Iso8583Service iso8583Service) {
+        this.vitaService = vitaService;
+        this.iso8583Service = iso8583Service;
+    }
 
 
     private static final Logger logger = LoggerFactory.getLogger(SwitchService.class);
@@ -53,8 +52,8 @@ public class SwitchService {
         }
 
         try (Socket socket = new Socket(host, port);
-             BufferedOutputStream outStream = new BufferedOutputStream(socket.getOutputStream());
-             DataInputStream dis = new DataInputStream(socket.getInputStream())) {
+                BufferedOutputStream outStream = new BufferedOutputStream(socket.getOutputStream());
+                DataInputStream dis = new DataInputStream(socket.getInputStream())) {
             logger.info("Connected to switch at {}:{}", host, port);
             outStream.write(send(isoMsg));
             outStream.flush();
@@ -68,9 +67,9 @@ public class SwitchService {
             return responseWithoutHeader;
 
         } catch (IOException e) {
-           iso8583Service.createIso8583ErrorMessage(driverRequest);
+            iso8583Service.createIso8583ErrorMessage(driverRequest);
             logger.error("Switch connection failed: ", e);
-            return null;  // or handle failure as appropriate
+            return null; // or handle failure as appropriate
         }
     }
 
@@ -85,7 +84,8 @@ public class SwitchService {
 
             for (int k = 0; pos + k < data.length && k < 16; k++) {
                 sb.append(String.format("%02X ", data[pos + k]));
-                if (k == 7) sb.append(" ");
+                if (k == 7)
+                    sb.append(" ");
             }
 
             while (sb.length() - startLen < 61) {

@@ -1,43 +1,48 @@
 <configuration>
+    <!-- Define properties with default values -->
+    <property name="LOG_DIR" value="${log.dir:-logs}"/>
+    <property name="LOG_FILE" value="${log.file:-application.log}"/>
+    <property name="MAX_HISTORY" value="${log.history:-30}"/>
+    <property name="MAX_SIZE" value="${log.size:-10MB}"/>
+    <property name="LOG_LEVEL" value="${log.level:-INFO}"/>
+    <property name="LOG_CONSOLE_ENABLED" value="${log.console.enabled:-true}"/>
 
-    <!-- Define a base directory for logs -->
-    <property name="LOG_DIR" value="logs"/>
-
-    <!-- Console Appender (Logs to Console only) -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>[ %d{yyyy-MM-dd HH:mm:ss} ] [ %thread ] [ %-5level ] [ %logger{36} ] ~ %msg%n</pattern>
-            <charset>UTF-8</charset>
-        </encoder>
-    </appender>
-
-    <!-- Rolling File Appender (Logs specific classes to a file) -->
+    <!-- Rolling File Appender -->
     <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_DIR}/application.log</file>
+        <file>${LOG_DIR}/${LOG_FILE}</file>
+
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_DIR}/application-%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
+            <fileNamePattern>${LOG_DIR}/%d{yyyy-MM-dd}-${LOG_FILE}</fileNamePattern>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
         </rollingPolicy>
+
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>${MAX_SIZE}</maxFileSize>
+        </triggeringPolicy>
+
         <encoder>
             <pattern>[ %d{yyyy-MM-dd HH:mm:ss} ] [ %thread ] [ %-5level ] [ %logger{36} ] ~ %msg%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
 
-    <!-- Root Logger Configuration (Console only for INFO and above) -->
-    <root level="INFO">
-        <!-- Console appender for general logging -->
-        <appender-ref ref="CONSOLE"/>
+    <!-- Root Logger -->
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="ROLLING"/>
     </root>
 
-    <!-- Logger for specific package or class, logs to file at DEBUG level -->
-    <logger name="com.example" level="DEBUG">
-        <appender-ref ref="ROLLING"/>
-    </logger>
+    <!-- Conditionally Enable Console Logging -->
+    <springProfile name="console">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>[ %d{yyyy-MM-dd HH:mm:ss} ] [ %thread ] [ %-5level ] [ %logger{36} ] ~ %msg%n</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
 
-    <!-- Another custom logger example -->
-    <logger name="com.example.service" level="INFO">
-        <appender-ref ref="ROLLING"/>
-    </logger>
+        <logger name="ROOT" level="${LOG_LEVEL}">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
 
 </configuration>
