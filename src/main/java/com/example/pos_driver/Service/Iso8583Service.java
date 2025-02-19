@@ -39,7 +39,7 @@ public class Iso8583Service {
     @Autowired
     private VitaService vitaService;
 
-    private static final String PACKAGER_FILE_PATH = "src/main/resources/pakeager.xml";  // Specify your pakeager.xml path
+    private static final String PACKAGER_FILE_PATH = "src/main/resources/pakeager.xml";  
 
     // Method to generate ISO8583 message
     public byte[] createIso8583Message(DriverRequest driverRequest, String pin) throws IOException, XPostilion {
