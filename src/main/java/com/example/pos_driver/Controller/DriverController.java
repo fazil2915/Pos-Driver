@@ -8,6 +8,8 @@ import com.example.pos_driver.Service.SwitchService;
 import com.example.pos_driver.dto.PosTransRes;
 import com.example.pos_driver.Repo.PinDecryption;
 import com.example.pos_driver.Service.CardService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,8 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 @RestController
+
+@Tag(name = "Driver API", description = "Operations related to pos driver")
 @RequestMapping("/api")
 public class DriverController {
 
@@ -55,6 +59,9 @@ public class DriverController {
         this.pinDecryption = pinDecryption;
     }
 
+
+
+    @Operation(summary = "Process a transaction request.", description = "Receive transaction request from pos machine then validate and process the request and give response.")
     @PostMapping("/posDriver")
     public ResponseEntity<?> checkTerminal(@RequestBody DriverRequest driver) throws IOException, XPostilion {
         logger.info("====================================================");
@@ -121,6 +128,7 @@ public class DriverController {
     private static final String LOGS_DIRECTORY = "logs"; // Adjust if needed
 
     // Get a list of all available log files
+    @Operation(summary = "Get name of all logs.", description = "Fetch file name of all logs in the pos driver.")
     @GetMapping("/logs")
     public List<String> listLogFiles() throws IOException {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(LOGS_DIRECTORY), "*.log")) {
@@ -131,7 +139,8 @@ public class DriverController {
         }
     }
 
-    // Get logs for a specific date (format: YYYY-MM-DD)
+    // Get logs for a specific date (format: YYYY-MM-DD)4
+    @Operation(summary = "Get specific log.", description = "Fetch specific log based on name.")
     @GetMapping("/logs/{date}")
     public List<String> getLogsByDate(@PathVariable String date) throws IOException {
         String logFileName = "application-" + date + ".log";
@@ -167,10 +176,5 @@ public class DriverController {
                     return Stream.of(line.split("\n"));
                 })
                 .collect(Collectors.toList());
-    }
-
-    @PostMapping("/test2")
-    public String testApi(@RequestBody DriverRequest driverRequest) {
-        return "";
     }
 }
