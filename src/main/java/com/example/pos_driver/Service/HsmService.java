@@ -26,8 +26,7 @@ public class HsmService {
     private VitaService vitaService;
 
     private static final Logger logger = LoggerFactory.getLogger(HsmService.class);
-    private static final String DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=Aptpos;user=sa;password=password@123";
-
+   
     @Autowired
     public HsmService(PinDecryption pinDecryption) {
         this.pinDecryption = pinDecryption;
@@ -132,21 +131,7 @@ public class HsmService {
         return hsmResponse.substring(hsmResponse.length() - 16);
     }
 
-    private Optional<String> fetchKeyFromDatabase(String query) {
-        try (Connection connection = DriverManager.getConnection(DB_URL);
-             PreparedStatement ps = connection.prepareStatement(query);
-             ResultSet rs = ps.executeQuery()) {
-
-            if (rs.next()) {
-                return Optional.of(rs.getString(1));
-            }
-
-        } catch (SQLException e) {
-            logger.error("Database query error: {}", e.getMessage(), e);
-        }
-
-        return Optional.empty();
-    }
+   
     private byte[] hexStringToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];

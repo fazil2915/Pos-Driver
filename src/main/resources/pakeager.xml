@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<iso8583>
-    <field number="2" length="19" type="LLVAR" />
-    <field number="3" length="6" type="NUMERIC" />
-    <field number="4" length="12" type="NUMERIC" />
-    <field number="39" length="2" type="NUMERIC" />
-    <!-- Define other fields as needed -->
-</iso8583>
