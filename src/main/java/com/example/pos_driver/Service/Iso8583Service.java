@@ -45,6 +45,7 @@ public class Iso8583Service {
     public byte[] createIso8583Message(DriverRequest driverRequest, String pin) throws IOException, XPostilion {
     try{
         logger.info("--- CREATING ISO MESSAGE ---");
+        System.out.println("");
         Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
 
         Iso8583Post result = new Iso8583Post();
