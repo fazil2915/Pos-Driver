@@ -2,10 +2,17 @@
     <!-- Define properties with default values -->
     <property name="LOG_DIR" value="${log.dir:-logs}"/>
     <property name="LOG_FILE" value="${log.file:-application.log}"/>
-    <property name="MAX_HISTORY" value="${log.history:-30}"/>
     <property name="MAX_SIZE" value="${log.size:-10MB}"/>
     <property name="LOG_LEVEL" value="${log.level:-INFO}"/>
-    <property name="LOG_CONSOLE_ENABLED" value="${log.console.enabled:-true}"/>
+    <property name="LOG_CONSOLE_ENABLED" value="true"/>
+
+    <!-- Console Appender (Always Enabled) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>[ %d{yyyy-MM-dd HH:mm:ss} ] [ %thread ] [ %-5level ] [ %logger{36} ] ~ %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
 
     <!-- Rolling File Appender -->
     <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -13,7 +20,7 @@
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_DIR}/%d{yyyy-MM-dd}-${LOG_FILE}</fileNamePattern>
-            <maxHistory>${MAX_HISTORY}</maxHistory>
+
         </rollingPolicy>
 
         <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
@@ -26,23 +33,10 @@
         </encoder>
     </appender>
 
-    <!-- Root Logger -->
+    <!-- Root Logger (Console + File) -->
     <root level="${LOG_LEVEL}">
+        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ROLLING"/>
     </root>
-
-    <!-- Conditionally Enable Console Logging -->
-    <springProfile name="console">
-        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder>
-                <pattern>[ %d{yyyy-MM-dd HH:mm:ss} ] [ %thread ] [ %-5level ] [ %logger{36} ] ~ %msg%n</pattern>
-                <charset>UTF-8</charset>
-            </encoder>
-        </appender>
-
-        <logger name="ROOT" level="${LOG_LEVEL}">
-            <appender-ref ref="CONSOLE"/>
-        </logger>
-    </springProfile>
 
 </configuration>

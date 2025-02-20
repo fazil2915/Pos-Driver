@@ -36,3 +36,4 @@ build/
 *.log
 logs/
 logs
+log.dir:logs_IS_UNDEFINED

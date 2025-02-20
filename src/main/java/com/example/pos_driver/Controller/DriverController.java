@@ -59,11 +59,15 @@ public class DriverController {
         this.pinDecryption = pinDecryption;
     }
 
+    @Autowired
+    public  NotificationService notificationService;
+
 
 
     @Operation(summary = "Process a transaction request.", description = "Receive transaction request from pos machine then validate and process the request and give response.")
     @PostMapping("/posDriver")
     public ResponseEntity<?> checkTerminal(@RequestBody DriverRequest driver) throws IOException, XPostilion {
+        notificationService.sendTransactionNotification("success");
         logger.info("====================================================");
         logger.info("Transaction is Started");
         logger.info("====================================================");
@@ -197,6 +201,7 @@ public class DriverController {
 
     @PostMapping("/update/consoleLogging")
     public ResponseEntity<Map<String, String>> updateConsoleLogging(@RequestParam boolean enableConsoleLogging) {
+        
         System.setProperty("log.console.enabled", String.valueOf(enableConsoleLogging));
 
         // Reload Logback configuration

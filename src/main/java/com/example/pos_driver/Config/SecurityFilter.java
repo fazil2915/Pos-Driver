@@ -24,6 +24,7 @@ public class SecurityFilter extends WebSecurityConfigurerAdapter {
                 .and()
                 .authorizeRequests()
                 .antMatchers(
+                        "/ws/**",
                         "/auth/**",
                         "/fit/**",
                         "/merchant/**",
@@ -39,6 +40,8 @@ public class SecurityFilter extends WebSecurityConfigurerAdapter {
                 .and()
                 .httpBasic() // Use basic authentication
                 .and()
+                .headers().frameOptions().disable()
+                .and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
     }
@@ -46,10 +49,11 @@ public class SecurityFilter extends WebSecurityConfigurerAdapter {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Allow all origins
+//        configuration.setAllowedOrigins(Arrays.asList("*")); // Allow all origins
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(false); // Set to true if sending cookies or auth headers
+        configuration.setAllowCredentials(true); // Set to true if sending cookies or auth headers
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
