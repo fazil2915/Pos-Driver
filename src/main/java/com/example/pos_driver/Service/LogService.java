@@ -6,83 +6,79 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.util.StatusPrinter;
+import com.example.pos_driver.Model.LogConfig;
+import com.example.pos_driver.Repo.LogConfigRepo;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.net.URL;
+import java.util.Optional;
 
 @Service
 public class LogService {
 
     private static String lastUsedLogDir = null;
 
-    public static void reloadConfiguration(String customLogDir) {
+    @Autowired
+    private LogConfigRepo logConfigRepo;
+
+    @PostConstruct // Auto-run on server startup
+    public void loadConfigOnStartup() {
+        Optional<LogConfig> config =logConfigRepo.findById(1L); // Assume 1 record exists
+        if (config.isPresent()) {
+            LogConfig logConfig = config.get();
+            reloadConfiguration(logConfig.getLogDir(), logConfig.getLogSize(), logConfig.getConsoleEnabled());
+        } else {
+            reloadConfiguration(null, null, null); // Load defaults if no config exists
+        }
+    }
+
+    public void reloadConfiguration(String customLogDir, String customFileSize, Boolean consoleEnabled) {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         try {
             context.reset(); // Clear existing log settings
 
-            // Inject dynamic properties
-            context.putProperty("LOG_HISTORY", System.getProperty("log.history", "10")); // Default 10
-            context.putProperty("LOG_SIZE", System.getProperty("log.size", "20MB")); // Default 20MB
-            context.putProperty("LOG_LEVEL", System.getProperty("log.level", "INFO")); // Default INFO
+            // Fetch from DB or use defaults
+            String logSize = (customFileSize != null) ? customFileSize : "10MB";
+            boolean consoleLoggingEnabled = (consoleEnabled != null) ? consoleEnabled : true;
 
-            // Set log level dynamically
+            context.putProperty("LOG_SIZE", logSize);
+            context.putProperty("LOG_LEVEL", System.getProperty("log.level", "INFO"));
+
             context.getLogger("ROOT").setLevel(Level.toLevel(System.getProperty("log.level", "INFO")));
 
-            // Handle console logging enable/disable
-            boolean consoleLoggingEnabled = Boolean.parseBoolean(System.getProperty("log.console.enabled", "true"));
-            Appender consoleAppender = context.getLogger("ROOT").getAppender("CONSOLE");
-
-            if (consoleAppender instanceof ConsoleAppender) {
-                consoleAppender.stop(); // Stop appender before modifying it
-                if (!consoleLoggingEnabled) {
-                    context.getLogger("ROOT").detachAppender(consoleAppender);
-                    System.out.println("❌ Console logging is disabled.");
-                } else {
-                    context.getLogger("ROOT").addAppender(consoleAppender);
-                    System.out.println("✅ Console logging is enabled.");
-                }
-            }
-
-            // Get project root directory
-            String projectRoot = System.getProperty("user.dir");
-
-            // Default log directory inside the project root
-            String defaultLogDir = projectRoot + "/logs";
-            String logDir = defaultLogDir;
-
-            // Override if custom directory is provided and valid
-            if (customLogDir != null && !customLogDir.trim().isEmpty() && !customLogDir.equals(lastUsedLogDir)) {
-                File customDir = new File(projectRoot, customLogDir);
-                if (customDir.exists() || customDir.mkdirs()) {
-                    logDir = customDir.getAbsolutePath();
-                } else {
-                    System.err.println("⚠️ Failed to use custom log directory. Using default: " + defaultLogDir);
-                    logDir = defaultLogDir;
-                }
-            }
-
-            // Avoid redundant directory creation check
-            if (!logDir.equals(lastUsedLogDir)) {
+            String logDir = customLogDir;
+            if (logDir != null) {
                 File logDirectory = new File(logDir);
-                System.out.println("Log directory path: " + logDirectory.getAbsolutePath());
-
                 if (!logDirectory.exists()) {
-                    boolean created = logDirectory.mkdirs();
-                    if (created) {
-                        System.out.println("✅ Log directory created at: " + logDir);
+                    System.out.println("🔍 Attempting to create log directory: " + logDir);
+                    boolean dirCreated = logDirectory.mkdirs();
+                    System.out.println(dirCreated);
+
+                    if (!dirCreated) {
+                        System.err.println("❌ Failed to create log directory: " + logDir + ". Falling back to default.");
+                        logDir = System.getProperty("user.dir") + "/logs"; // Default to user home directory
                     } else {
-                        System.err.println("❌ Failed to create log directory: " + logDir);
-                        System.err.println("Can write to project root? " + new File(projectRoot).canWrite());
+                        System.out.println("✅ Log directory created: " + logDir);
                     }
-                } else {
-                    System.out.println("ℹ️ Log directory already exists.");
                 }
-                lastUsedLogDir = logDir;
+
+                // Check if directory is writable
+                if (!logDirectory.canWrite()) {
+                    System.err.println("❌ No write permission for " + logDir + ". Using default directory.");
+                    logDir = System.getProperty("user.dir") + "/logs";
+                }
+            } else {
+                logDir = System.getProperty("user.dir") + "/logs"; // Default location
             }
 
-            // Load logback-spring.xml
+            context.putProperty("LOG_DIR", logDir);
+            System.out.println("📁 Log directory set to: " + logDir);
+
+            // Apply logback configuration
             URL logbackConfig = LogService.class.getClassLoader().getResource("logback-spring.xml");
             if (logbackConfig != null) {
                 JoranConfigurator configurator = new JoranConfigurator();
@@ -93,15 +89,19 @@ public class LogService {
                 System.err.println("❌ logback-spring.xml not found in resources!");
             }
 
-            // Print errors/warnings if any
             StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+
+            // Save updated configuration in DB
+            LogConfig config = new LogConfig();
+            config.setId(1L); // Assume single configuration entry
+            config.setLogDir(logDir);
+            config.setLogSize(logSize);
+            config.setConsoleEnabled(consoleEnabled);
+            logConfigRepo.save(config);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // Overloaded method to use the default log directory
-    public static void reloadConfiguration() {
-        reloadConfiguration(null);
-    }
 }
