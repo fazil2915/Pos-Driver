@@ -67,7 +67,6 @@ public class DriverController {
     @Operation(summary = "Process a transaction request.", description = "Receive transaction request from pos machine then validate and process the request and give response.")
     @PostMapping("/posDriver")
     public ResponseEntity<?> checkTerminal(@RequestBody DriverRequest driver) throws IOException, XPostilion {
-        notificationService.sendTransactionNotification("success");
         logger.info("====================================================");
         logger.info("Transaction is Started");
         logger.info("====================================================");
@@ -102,11 +101,12 @@ public class DriverController {
                 driver.setDecodedNewPin(newPinBlock);
             }
             byte[] isoMsg = iso8583Service.createIso8583Message(driver, pin);
+            notificationService.sendTransactionNotification("success");
             logger.info("Iso message created");
             if (isoMsg == null) {
                 logger.info("====================================================");
                 logger.info("End of Transaction");
-                logger.info("====================================================\n\n\n");
+                logger.info("====================================================");
                 return ResponseEntity.ok(new PosTransRes("Error in ISO message creation", "false", "false"));
             }
 
@@ -114,7 +114,7 @@ public class DriverController {
             if (switchResponse == null) {
                 logger.info("====================================================");
                 logger.info("End of Transaction");
-                logger.info("====================================================\n\n\n");
+                logger.info("====================================================");
                 return ResponseEntity.ok(new PosTransRes("Socket connection failed.", "false", "false"));
             }
 
@@ -122,7 +122,7 @@ public class DriverController {
             logger.info("iso response :" + receiveResponse);
             logger.info("====================================================");
             logger.info("End of Transaction");
-            logger.info("====================================================\n\n\n");
+            logger.info("====================================================");
             return ResponseEntity.ok(receiveResponse);
         }
         logger.info("\n\n");

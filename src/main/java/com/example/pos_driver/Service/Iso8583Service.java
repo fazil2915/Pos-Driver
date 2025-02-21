@@ -45,7 +45,7 @@ public class Iso8583Service {
     public byte[] createIso8583Message(DriverRequest driverRequest, String pin) throws IOException, XPostilion {
     try{
         logger.info("--- CREATING ISO MESSAGE ---");
-        System.out.println("");
+
         Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
 
         Iso8583Post result = new Iso8583Post();
@@ -75,6 +75,17 @@ public class Iso8583Service {
         result.putField(Iso8583Post.Bit._012_TIME_LOCAL, getLocalTransactionTime());
         result.putField(Iso8583Post.Bit._013_DATE_LOCAL, getLocalTransactionDate());
         result.putField(Iso8583Post.Bit._023_CARD_SEQ_NR, "000");
+
+        String trimmedTrack2 = null;
+        if(driverRequest.getTrack2().length() > 32){
+            trimmedTrack2 = driverRequest.getTrack2().substring(0, 32);
+            driverRequest.setTrack2(trimmedTrack2);
+            System.out.println( "trimmedTrack2 :: "+ trimmedTrack2 );
+        }else{
+            trimmedTrack2 =  driverRequest.getTrack2();
+        }
+        result.putField(Iso8583Post.Bit._025_POS_CONDITION_CODE, "00");
+
         result.putField(Iso8583Post.Bit._035_TRACK_2_DATA, driverRequest.getTrack2());
 //        result.putField(Iso8583Post.Bit._037_RETRIEVAL_REF_NR, "321420489260");//Naigurta
 //        result.putField(Iso8583Post.Bit._018_MERCHANT_TYPE, terminal.getMerchant().getMerchantType());
@@ -84,6 +95,12 @@ public class Iso8583Service {
         result.putField(Iso8583Post.Bit._049_CURRENCY_CODE_TRAN, "928");
         result.putField(Iso8583Post.Bit._052_PIN_DATA, Transform.fromHexToBin(pin));
         result.putField(Iso8583Post.Bit._123_POS_DATA_CODE, "310101511336101");
+
+
+
+        String cvv = trimmedTrack2.substring(24, 27);
+        result.putPrivField(Iso8583Post.PrivBit._010_CVV_2, cvv);
+
         result.putPrivField(Iso8583Post.PrivBit._002_SWITCH_KEY, "0200070000744892610802163636");//Naiguata
         result.putPrivField(Iso8583Post.PrivBit._009_ADDITIONAL_NODE_DATA, "0014Q31003226TRANRED140");//Naiguata
         result.putPrivField(Iso8583Post.PrivBit._010_CVV_2, "000");//Naiguata
@@ -286,15 +303,33 @@ public class Iso8583Service {
 
 
     public void createIso8583ErrorMessage(DriverRequest driverRequest) throws IOException, XPostilion {
+        System.out.println("ERorr msg");
         Terminal terminal = vitaService.findTerminalBySerialNumber(driverRequest.getSl_no()).get();
 
         Iso8583Post result = new Iso8583Post();
-        result.putMsgType(Iso8583Post.MsgType._0210_TRAN_REQ_RSP);
+
+        if(Objects.equals(driverRequest.getIreq_transaction_type(), "92")){
+            result.putMsgType(Iso8583Post.MsgType._0610_ADMIN_REQ_RSP);
+            String newDecodedPin = driverRequest.getDecodedNewPin();
+            if (newDecodedPin.length() < 48) {
+                StringBuilder binaryBuilder = new StringBuilder();
+                while (binaryBuilder.length() + newDecodedPin.length() < 96) {
+                    binaryBuilder.append('0');
+                }
+                binaryBuilder.append(newDecodedPin);
+                newDecodedPin = binaryBuilder.toString();
+            }
+            result.putField(Iso8583Post.Bit._053_SECURITY_INFO, Transform.fromHexToBin(newDecodedPin));
+            result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION,"00000000");
+        }else{
+            result.putMsgType(Iso8583Post.MsgType._0210_TRAN_REQ_RSP);
+            result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount() + "00");
+        }
+
         result.putField(Iso8583Post.Bit._002_PAN, driverRequest.getPan());
         result.putField(Iso8583Post.Bit._003_PROCESSING_CODE, driverRequest.getIreq_transaction_type() + "0000");
-        result.putField(Iso8583Post.Bit._004_AMOUNT_TRANSACTION, driverRequest.getAmount() + "00");
         result.putField(Iso8583Post.Bit._007_TRANSMISSION_DATE_TIME, getTransmissionDateTime());
-        result.putField(Iso8583Post.Bit._039_RSP_CODE,"91");
+
         result.putField(Iso8583Post.Bit._012_TIME_LOCAL, getLocalTransactionTime());
         result.putField(Iso8583Post.Bit._013_DATE_LOCAL, getLocalTransactionDate());
         result.putField(Iso8583Post.Bit._023_CARD_SEQ_NR, "000");
@@ -312,7 +347,10 @@ public class Iso8583Service {
         result.putPrivField(Iso8583Post.PrivBit._010_CVV_2, "000");//Naiguata
         result.putPrivField(Iso8583Post.PrivBit._025_ICC_DATA, iccCardService.getTempIcc(driverRequest.getIcc_req_data()));
         result.putField(Iso8583Post.Bit._011_SYSTEMS_TRACE_AUDIT_NR, driverRequest.getStan());
+        result.putField(Iso8583Post.Bit._039_RSP_CODE,"91");
+
         transactionService.createTransaction(driverRequest,result);
+
     }
 
 
